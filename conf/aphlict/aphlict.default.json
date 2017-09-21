@@ -4,9 +4,9 @@
       "type": "client",
       "port": 22280,
       "listen": "0.0.0.0",
-      "ssl.key": null,
-      "ssl.cert": null,
-      "ssl.chain": null
+      "ssl.key": "/etc/pki/tls/private/ca.key",
+      "ssl.cert": "/etc/ssl/certs/phab.crt",
+      "ssl.chain": "/etc/ssl/certs/phab.ca-bundle"
     },
     {
       "type": "admin",
