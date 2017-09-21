@@ -45,7 +45,7 @@ final class PhabricatorPeopleNewController
       if (!strlen($new_email)) {
         $errors[] = pht('Email is required.');
         $e_email = pht('Required');
-      } else if (!PhabricatorUserEmail::isAllowedAddress($new_email)) {
+      } else if (!PhabricatorUserEmail::isAllowedAddress($new_email) && !$is_list) {
         $e_email = pht('Invalid');
         $errors[] = PhabricatorUserEmail::describeAllowedAddresses();
       } else {
@@ -88,7 +88,7 @@ final class PhabricatorPeopleNewController
 
           id(new PhabricatorUserEditor())
             ->setActor($admin)
-            ->createNewUser($user, $email);
+            ->createNewUser($user, $email, $allow_reassign = false, $is_list);
 
           if ($is_bot) {
             id(new PhabricatorUserEditor())

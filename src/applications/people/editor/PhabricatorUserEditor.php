@@ -24,7 +24,8 @@ final class PhabricatorUserEditor extends PhabricatorEditor {
   public function createNewUser(
     PhabricatorUser $user,
     PhabricatorUserEmail $email,
-    $allow_reassign = false) {
+    $allow_reassign = false,
+    $override_email_check = false) {
 
     if ($user->getID()) {
       throw new Exception(pht('User has already been created!'));
@@ -57,7 +58,7 @@ final class PhabricatorUserEditor extends PhabricatorEditor {
       $user->setIsEmailVerified(1);
     }
 
-    $this->willAddEmail($email);
+    $this->willAddEmail($email, $override_email_check);
 
     $user->openTransaction();
       try {
@@ -688,7 +689,7 @@ final class PhabricatorUserEditor extends PhabricatorEditor {
   /**
    * @task internal
    */
-  private function willAddEmail(PhabricatorUserEmail $email) {
+  private function willAddEmail(PhabricatorUserEmail $email, $override_email_check = false) {
 
     // Hard check before write to prevent creation of disallowed email
     // addresses. Normally, the application does checks and raises more
@@ -699,7 +700,7 @@ final class PhabricatorUserEditor extends PhabricatorEditor {
       throw new Exception(PhabricatorUserEmail::describeValidAddresses());
     }
 
-    if (!PhabricatorUserEmail::isAllowedAddress($email->getAddress())) {
+    if (!PhabricatorUserEmail::isAllowedAddress($email->getAddress()) && !$override_email_check) {
       throw new Exception(PhabricatorUserEmail::describeAllowedAddresses());
     }
 
