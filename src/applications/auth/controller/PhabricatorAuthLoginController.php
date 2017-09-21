@@ -29,37 +29,56 @@ final class PhabricatorAuthLoginController
     $this->providerKey = $request->getURIData('pkey');
     $this->extraURIData = $request->getURIData('extra');
 
-    $response = $this->loadProvider();
-    if ($response) {
-      return $response;
-    }
+    $account_key = $request->getURIData('akey');
+    if (strlen($account_key)) {
+      $result = $this->loadAccountForRegistrationOrLinking($account_key);
+      list($account, $provider, $response) = $result;
 
-    $provider = $this->provider;
+      $user = PhabricatorUser::loadOneWithEmailAddress(
+        $account->getEmail());
 
-    try {
-      list($account, $response) = $provider->processLoginRequest($this);
-    } catch (PhutilAuthUserAbortedException $ex) {
-      if ($viewer->isLoggedIn()) {
-        // If a logged-in user cancels, take them back to the external accounts
-        // panel.
-        $next_uri = '/settings/panel/external/';
-      } else {
-        // If a logged-out user cancels, take them back to the auth start page.
-        $next_uri = '/';
+      if (!$user) {
+        return $this->renderError(
+          pht(
+            'The external account you just logged in with is not associated '.
+            'with a valid Phabricator user.'));
       }
 
-      // User explicitly hit "Cancel".
-      $dialog = id(new AphrontDialogView())
-        ->setUser($viewer)
-        ->setTitle(pht('Authentication Canceled'))
-        ->appendChild(
-          pht('You canceled authentication.'))
-        ->addCancelButton($next_uri, pht('Continue'));
-      return id(new AphrontDialogResponse())->setDialog($dialog);
-    }
+      $this->loginUser($user);
 
-    if ($response) {
-      return $response;
+    } else {
+      $response = $this->loadProvider();
+      if ($response) {
+        return $response;
+      }
+
+      $provider = $this->provider;
+
+      try {
+        list($account, $response) = $provider->processLoginRequest($this);
+      } catch (PhutilAuthUserAbortedException $ex) {
+        if ($viewer->isLoggedIn()) {
+          // If a logged-in user cancels, take them back to the external accounts
+          // panel.
+          $next_uri = '/settings/panel/external/';
+        } else {
+          // If a logged-out user cancels, take them back to the auth start page.
+          $next_uri = '/';
+        }
+
+        // User explicitly hit "Cancel".
+        $dialog = id(new AphrontDialogView())
+          ->setUser($viewer)
+          ->setTitle(pht('Authentication Canceled'))
+          ->appendChild(
+            pht('You canceled authentication.'))
+          ->addCancelButton($next_uri, pht('Continue'));
+        return id(new AphrontDialogResponse())->setDialog($dialog);
+      }
+
+      if ($response) {
+        return $response;
+      }
     }
 
     if (!$account) {
@@ -101,7 +120,7 @@ final class PhabricatorAuthLoginController
     } else {
       // The account is not yet attached to a Phabricator user, so this is
       // either a registration or an account link request.
-      if (!$viewer->isLoggedIn()) {
+      if (!$viewer->isLoggedIn() && !strlen($account_key)) {
         if ($provider->shouldAllowRegistration()) {
           return $this->processRegisterUser($account);
         } else {
@@ -204,6 +223,8 @@ final class PhabricatorAuthLoginController
       PhabricatorCookies::COOKIE_REGISTRATION,
       $registration_key);
 
+    PhabricatorCookies::setNextURICookie(
+      $this->getRequest(), $next_uri, $force = true);
     return id(new AphrontRedirectResponse())->setURI($next_uri);
   }
 

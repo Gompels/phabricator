@@ -7,8 +7,7 @@ final class AphrontDialogView
   private $title;
   private $shortTitle;
   private $submitButton;
-  private $cancelURI;
-  private $cancelText = 'Cancel';
+  private $cancelButtons = array();
   private $submitURI;
   private $hidden = array();
   private $class;
@@ -106,8 +105,7 @@ final class AphrontDialogView
       $text = pht('Cancel');
     }
 
-    $this->cancelURI = $uri;
-    $this->cancelText = $text;
+    $this->cancelButtons[] = array($uri, $text);
     return $this;
   }
 
@@ -238,22 +236,24 @@ final class AphrontDialogView
         $this->submitButton);
     }
 
-    if ($this->cancelURI) {
+    if ($this->cancelButtons) {
       $meta = array();
       if ($this->disableWorkflowOnCancel) {
         $meta['disableWorkflow'] = true;
       }
 
-      $buttons[] = javelin_tag(
-        'a',
-        array(
-          'href'  => $this->cancelURI,
-          'class' => 'button grey',
-          'name'  => '__cancel__',
-          'sigil' => 'jx-workflow-button',
-          'meta' => $meta,
-        ),
-        $this->cancelText);
+      foreach ($this->cancelButtons as $button) {
+        $buttons[] = javelin_tag(
+          'a',
+          array(
+            'href'  => $button[0],
+            'class' => 'button grey',
+            'name'  => '__cancel__',
+            'sigil' => 'jx-workflow-button',
+            'meta' => $meta,
+          ),
+          $button[1]);
+      }
     }
 
     if (!$this->hasViewer()) {
