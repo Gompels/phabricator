@@ -111,9 +111,10 @@ final class PhabricatorMailImplementationMailgunAdapter
     $future->setMethod('POST');
 
     foreach ($this->attachments as $attachment) {
+      $decoded = base64_decode($attachment['data']);
       $future->attachFileData(
         'attachment',
-        $attachment['data'],
+        ($decoded ? $decoded : $attachment['data']),
         $attachment['name'],
         $attachment['type']);
     }

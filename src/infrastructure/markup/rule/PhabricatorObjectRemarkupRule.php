@@ -78,7 +78,7 @@ abstract class PhabricatorObjectRemarkupRule extends PhutilRemarkupRule {
       return PhabricatorEnv::getProductionURI($href);
     } else if ($this->getEngine()->isHTMLMailMode()) {
       $href = PhabricatorEnv::getProductionURI($href);
-      return $this->renderObjectTagForMail($text, $href, $handle);
+      return $this->renderObjectTagForMail($text, $href, $handle, $object);
     }
 
     return $this->renderObjectRef($object, $handle, $anchor, $id);
@@ -120,7 +120,7 @@ abstract class PhabricatorObjectRemarkupRule extends PhutilRemarkupRule {
       return $name.' <'.PhabricatorEnv::getProductionURI($href).'>';
     } else if ($this->getEngine()->isHTMLMailMode()) {
       $href = PhabricatorEnv::getProductionURI($href);
-      return $this->renderObjectTagForMail($name, $href, $handle);
+      return $this->renderObjectTagForMail($name, $href, $handle, $object);
     }
 
     return $this->renderObjectEmbed($object, $handle, $options);
@@ -145,12 +145,25 @@ abstract class PhabricatorObjectRemarkupRule extends PhutilRemarkupRule {
   protected function renderObjectTagForMail(
     $text,
     $href,
-    PhabricatorObjectHandle $handle) {
+    PhabricatorObjectHandle $handle, $object) {
 
     $status_closed = PhabricatorObjectHandle::STATUS_CLOSED;
     $strikethrough = $handle->getStatus() == $status_closed ?
       'text-decoration: line-through;' :
       'text-decoration: none;';
+
+    $context = $this->getEngine()->getConfig('contextObject');
+    if ($context && $context instanceof PhabricatorMetaMTAMailBody &&
+        $object instanceof PhabricatorFile) {
+
+      $id = $object->getID();
+      $name = $object->getName();
+      $name = "(F{$id}) {$name}";
+
+      $context->addAttachment(new PhabricatorMetaMTAAttachment(
+        base64_encode($object->loadFileData()),
+        $name, $object->getMimeType()));
+    }
 
     return phutil_tag(
       'a',

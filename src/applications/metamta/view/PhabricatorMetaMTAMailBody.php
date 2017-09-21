@@ -57,6 +57,7 @@ final class PhabricatorMetaMTAMailBody extends Phobject {
 
     try {
       $mail_engine = PhabricatorMarkupEngine::newMarkupEngine(array());
+      $mail_engine->setConfig('contextObject', $this);
       $mail_engine->setConfig('viewer', $this->getViewer());
       $mail_engine->setMode(PhutilRemarkupEngine::MODE_HTML_MAIL);
       $mail_engine->setConfig(
