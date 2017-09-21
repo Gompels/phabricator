@@ -1149,8 +1149,23 @@ abstract class PhabricatorApplicationTransactionEditor
 
     if (!$this->getDisableEmail()) {
       if ($this->shouldSendMail($object, $xactions)) {
+        // Mentioned mailing list users should receive a CC, even if unsubscribed.
+        $phids = array_diff($this->getMentionedPHIDs(), $this->subscribers);
+        if ($phids) {
+          $users = id(new PhabricatorPeopleQuery())
+            ->setViewer($this->getActor())
+            ->withPHIDs($phids)
+            ->execute();
+          $users = mpull($users, null, 'getPHID');
+
+          foreach ($phids as $key => $phid) {
+            if (!$users[$phid]->getIsMailingList()) {
+              unset($phids[$key]);
+            }
+          }
+        }
         $this->mailToPHIDs = $this->getMailTo($object);
-        $this->mailCCPHIDs = $this->getMailCC($object);
+        $this->mailCCPHIDs = array_merge($this->getMailCC($object), array_values($phids));
       }
     }
 
@@ -1467,6 +1482,8 @@ abstract class PhabricatorApplicationTransactionEditor
           $object,
           PhabricatorPolicyCapability::CAN_VIEW)
         ) {
+          unset($phids[$key]);
+        } elseif ($users[$phid]->getIsMailingList()) {
           unset($phids[$key]);
         } else {
           if ($object->isAutomaticallySubscribed($phid)) {
