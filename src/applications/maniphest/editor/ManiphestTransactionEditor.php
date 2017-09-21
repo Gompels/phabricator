@@ -223,7 +223,7 @@ final class ManiphestTransactionEditor
     }
 
     $body->addLinkSection(
-      pht('TASK DETAIL'),
+      pht('TASK DETAIL (only available to authorised users)'),
       PhabricatorEnv::getProductionURI('/T'.$object->getID()));
 
 
